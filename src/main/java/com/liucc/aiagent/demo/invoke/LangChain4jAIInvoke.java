@@ -1,22 +1,23 @@
 package com.liucc.aiagent.demo.invoke;
 
-import jakarta.annotation.Resource;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.boot.CommandLineRunner;
+import com.liucc.aiagent.demo.TestApiKey;
+import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import org.springframework.stereotype.Component;
 
 /**
  * 通过SpringAI调用AI
  */
 @Component
-public class SpringAIAIInvoke implements CommandLineRunner {
+public class LangChain4jAIInvoke {
 
-    @Resource
-    private ChatModel dashScopeChatModel;
-    @Override
-    public void run(String... args) throws Exception {
-        String response = dashScopeChatModel.call(new Prompt("将一个冷笑话")).getResult().getOutput().getText();
-        System.out.println("response:" + response);
+    public static void main(String[] args) {
+        QwenChatModel chatModel = QwenChatModel.builder()
+                .apiKey(TestApiKey.API_KEY)
+                .modelName("qwen-plus")
+                .build();
+        String result = chatModel.chat("将一个冷笑话");
+        System.out.println("result:" + result);
+
     }
+
 }
