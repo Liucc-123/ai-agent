@@ -31,4 +31,23 @@ class LoveAppTest {
         answer = loveApp.doChat(message, chatId);
         Assertions.assertNotNull(answer);
     }
+
+    /**
+     * 测试AI模型返回实体类型结构化信息
+     */
+    @Test
+    void entityTest() {
+        String message = "生成一个随机演员的电影作品列表。";
+        LoveApp.ActorFilms actorFilms = loveApp.doChatEntity(message);
+        Assertions.assertNotNull(actorFilms);
+    }
+
+    /**
+     * 测试大模型流式回复内容
+     */
+    @Test
+    void doChatStream() {
+        String message = "你好，我是tiga";
+        loveApp.doChatStream(message);
+    }
 }

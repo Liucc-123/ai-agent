@@ -7,6 +7,9 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
@@ -17,6 +20,8 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 @Component
 @Slf4j
 public class LoveApp {
+
+    record ActorFilms(String actor, List<String> movies) {}
 
     // 系统提示词
     private static final String SYSTEM_PROMPT = """
@@ -56,6 +61,45 @@ public class LoveApp {
         String content = response.getResult().getOutput().getText();
         log.info("content: {}", content);
         return content;
+    }
+
+    /**
+     * 结构化输出
+     * @param message
+     * @return
+     */
+    public ActorFilms doChatEntity(String message) {
+        ActorFilms entity = chatClient.prompt()
+                .user(message)
+                .call()
+                .entity(ActorFilms.class);
+        log.info("entity: {}", entity);
+        return entity;
+    }
+
+        public void doChatStream(String message) {
+        log.info("大模型流式回复");
+        Flux<String> output = chatClient.prompt()
+                .user(message)
+                .stream()
+                .content();
+
+        // 订阅 Flux 流
+        output.subscribe(
+                // 正常输出
+                content -> log.info("content: {}", content),
+                // 异常情况
+                error -> log.error("Error occurred: {}", error.getMessage()),
+                () -> log.info("Stream completed")
+        );
+
+        // 这里阻塞主线程，是因为SpringAI使用的是非阻塞式的响应式编程，大模型还没开始回复内容呢，程序主线程就已经结束，因此就拿不到模型的流式回复内容。
+        try {
+            // 阻塞主线程，等待流完成
+            output.blockLast();
+        } catch (Exception e) {
+            log.error("等待流完成时出错", e);
+        }
     }
 
 }
