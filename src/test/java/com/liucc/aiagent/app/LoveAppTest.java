@@ -14,6 +14,7 @@ class LoveAppTest {
 
     @Resource
     private LoveApp loveApp;
+
     @Test
     void chatTest() {
         String chatId = UUID.randomUUID().toString();
@@ -49,5 +50,14 @@ class LoveAppTest {
     void doChatStream() {
         String message = "你好，我是tiga";
         loveApp.doChatStream(message);
+    }
+
+    /**
+     * 测试包含提示词模板的聊天
+     */
+    @Test
+    void doChatWithPromptTemplateTest() {
+        String actor = "赵丽颖";
+        loveApp.doChatWithPromptTemplate(actor);
     }
 }

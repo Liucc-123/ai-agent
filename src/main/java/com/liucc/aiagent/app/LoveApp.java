@@ -21,20 +21,22 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 @Slf4j
 public class LoveApp {
 
-    record ActorFilms(String actor, List<String> movies) {}
+    record ActorFilms(String actor, List<String> movies) {
+    }
 
     // 系统提示词
     private static final String SYSTEM_PROMPT = """
-        扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。
-        围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；
-        恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。
-        引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。
-        """;
+            扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。
+            围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；
+            恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。
+            引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。
+            """;
     private final ChatClient chatClient;
 
 
     /**
      * 构造函数注入ChatClient。默认使用的大模型是 DashScopeChatModel
+     *
      * @param builder 通过ChatClient.Builder构造ChatClient
      */
     public LoveApp(ChatClient.Builder builder) {
@@ -46,6 +48,7 @@ public class LoveApp {
 
     /**
      * 与大模型聊天
+     *
      * @param message
      * @param chatId
      * @return
@@ -65,6 +68,7 @@ public class LoveApp {
 
     /**
      * 结构化输出
+     *
      * @param message
      * @return
      */
@@ -77,7 +81,7 @@ public class LoveApp {
         return entity;
     }
 
-        public void doChatStream(String message) {
+    public void doChatStream(String message) {
         log.info("大模型流式回复");
         Flux<String> output = chatClient.prompt()
                 .user(message)
@@ -100,6 +104,22 @@ public class LoveApp {
         } catch (Exception e) {
             log.error("等待流完成时出错", e);
         }
+    }
+
+    /**
+     * 包含提示词模板的chat 方法
+     *
+     * @param actor 演员名称
+     */
+    public void doChatWithPromptTemplate(String actor) {
+        // 默认情况下，SpringAI 使用StTemplateRenderer来动态替换提示词模板中的参数。默认的语法解析规则是解析 {} 中的内容
+        String modelResponse = chatClient.prompt()
+                .user(u -> u.text("告诉我关于演员{actor}的5个作品")
+                        .param("actor", actor))
+                .call()
+                .content();
+
+        log.info("modelResponse: {}", modelResponse);
     }
 
 }
