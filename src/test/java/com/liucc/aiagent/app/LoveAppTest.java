@@ -60,4 +60,14 @@ class LoveAppTest {
         String actor = "赵丽颖";
         loveApp.doChatWithPromptTemplate(actor);
     }
+
+    /**
+     * 测试结构化输出（生成恋爱报告）
+     */
+    @Test
+    void doChatWithReportTest() {
+        String message = "我是水冠，我喜欢一个女孩momo，但我不知道该怎么去追她";
+        String chatId = UUID.randomUUID().toString();
+        loveApp.doChatWithReport(message, chatId);
+    }
 }
