@@ -1,18 +1,22 @@
 package com.liucc.aiagent.app;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
+import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
+import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 import java.util.List;
 
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemory;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * 恋爱助手
@@ -20,6 +24,9 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 @Component
 @Slf4j
 public class LoveApp {
+
+    @Resource
+    private ChatModel dashScopeChatModel;
 
     record ActorFilms(String actor, List<String> movies) {
     }
@@ -33,7 +40,6 @@ public class LoveApp {
             """;
     private final ChatClient chatClient;
 
-
     /**
      * 构造函数注入ChatClient。默认使用的大模型是 DashScopeChatModel
      *
@@ -42,7 +48,7 @@ public class LoveApp {
     public LoveApp(ChatClient.Builder builder) {
         ChatMemory chatMemory = new InMemoryChatMemory();
         chatClient = builder.defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory), new SimpleLoggerAdvisor())
                 .build();
     }
 
@@ -94,8 +100,7 @@ public class LoveApp {
                 content -> log.info("content: {}", content),
                 // 异常情况
                 error -> log.error("Error occurred: {}", error.getMessage()),
-                () -> log.info("Stream completed")
-        );
+                () -> log.info("Stream completed"));
 
         // 这里阻塞主线程，是因为SpringAI使用的是非阻塞式的响应式编程，大模型还没开始回复内容呢，程序主线程就已经结束，因此就拿不到模型的流式回复内容。
         try {
@@ -118,8 +123,18 @@ public class LoveApp {
                         .param("actor", actor))
                 .call()
                 .content();
-
+        System.out.println("sout方式，modelResponse: " + modelResponse);
         log.info("modelResponse: {}", modelResponse);
+    }
+
+    public Flux<String> doChatWithStream(String author) {
+        Flux<String> content = chatClient.prompt()
+                .user(u -> u.text("请用200字以内的方式介绍{author}的作品")
+                        .param("author", author))
+                .stream()
+                .content();
+        log.info("没事儿，就是想记录一下");
+        return content;
     }
 
 }
