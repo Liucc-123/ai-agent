@@ -25,6 +25,12 @@ knife4j:
   setting:
     language: zh_cn
 
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+
 logging:
   level:
     org.springframework.ai.chat.client.advisor: DEBUG

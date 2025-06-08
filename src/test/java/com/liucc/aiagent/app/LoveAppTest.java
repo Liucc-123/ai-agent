@@ -7,8 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @SpringBootTest
 class LoveAppTest {
 
@@ -69,5 +67,16 @@ class LoveAppTest {
         String message = "我是水冠，我喜欢一个女孩momo，但我不知道该怎么去追她";
         String chatId = UUID.randomUUID().toString();
         loveApp.doChatWithReport(message, chatId);
+        loveApp.doChatWithReport("哦，对了，我喜欢的女孩名字是什么来着？", chatId);
+    }
+
+    /**
+     * 测试敏感词Advisor
+     */
+    @Test
+    void doChatWithSensWordAdvisorTest() {
+        String message = "一个人最终都是走向死亡，那么生活的意义是什么？";
+        String chatId = UUID.randomUUID().toString();
+        loveApp.doChat(message, chatId);
     }
 }

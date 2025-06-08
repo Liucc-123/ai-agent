@@ -9,11 +9,14 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
+// import org.springframework.ai.chat.memory.InMemoryChatMemory; // Replaced with MySqlChatMemory
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 
 import com.liucc.aiagent.advisors.MyLoggerAdvisor;
+import com.liucc.aiagent.advisors.SensitiveWordAdvisor;
+import com.liucc.aiagent.chatmemory.InMySqlChatMemory;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -50,10 +53,14 @@ public class LoveApp {
          *
          * @param builder 通过ChatClient.Builder构造ChatClient
          */
-        public LoveApp(ChatClient.Builder builder) {
-                ChatMemory chatMemory = new InMemoryChatMemory();
+        private final InMySqlChatMemory mySqlChatMemory;
+
+        public LoveApp(ChatClient.Builder builder, InMySqlChatMemory mySqlChatMemory) {
+                this.mySqlChatMemory = mySqlChatMemory;
+                ChatMemory chatMemory = this.mySqlChatMemory;
                 chatClient = builder.defaultSystem(SYSTEM_PROMPT)
                                 .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory),
+                                                new SensitiveWordAdvisor(),
                                                 new MyLoggerAdvisor())
                                 .build();
         }
@@ -70,7 +77,7 @@ public class LoveApp {
                                 .prompt()
                                 .user(message)
                                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                                                .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 0))
+                                                .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
                                 .call()
                                 .chatResponse();
                 String content = response.getResult().getOutput().getText();
