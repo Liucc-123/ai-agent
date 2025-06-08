@@ -79,4 +79,12 @@ class LoveAppTest {
         String chatId = UUID.randomUUID().toString();
         loveApp.doChat(message, chatId);
     }
+
+    @Test
+    void doChaWithRagTest() {
+        String message = "你好，我是tiga";
+        String chatId = UUID.randomUUID().toString();
+        loveApp.doChaWithRag(message, chatId);
+        loveApp.doChaWithRag("我和我的女朋友是异地恋，我该怎么维持这段关系呢？", chatId);
+    }
 }

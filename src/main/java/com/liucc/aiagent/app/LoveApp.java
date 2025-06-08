@@ -3,22 +3,26 @@ package com.liucc.aiagent.app;
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
-// import org.springframework.ai.chat.memory.InMemoryChatMemory; // Replaced with MySqlChatMemory
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import com.liucc.aiagent.advisors.MyLoggerAdvisor;
 import com.liucc.aiagent.advisors.SensitiveWordAdvisor;
-import com.liucc.aiagent.chatmemory.InMySqlChatMemory;
 
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -29,9 +33,6 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class LoveApp {
 
-        @Resource
-        private ChatModel dashScopeChatModel;
-
         record ActorFilms(String actor, List<String> movies) {
         }
 
@@ -41,28 +42,43 @@ public class LoveApp {
 
         // 系统提示词
         private static final String SYSTEM_PROMPT = """
-                        扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。
-                        围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；
-                        恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。
-                        引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。
-                        """;
+        扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。
+        围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；
+        恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。
+        引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。
+        """;
+        @Value("classpath:/prompts/system-message.st")
+        private Resource systemResource;
+        
         private final ChatClient chatClient;
+
+        @jakarta.annotation.Resource
+        private VectorStore loveAppVectorStore;
 
         /**
          * 构造函数注入ChatClient。默认使用的大模型是 DashScopeChatModel
          *
          * @param builder 通过ChatClient.Builder构造ChatClient
+         * @throws IOException 
          */
-        private final InMySqlChatMemory mySqlChatMemory;
+        // private final InMySqlChatMemory mySqlChatMemory;
+        // public LoveApp(ChatClient.Builder builder, InMySqlChatMemory mySqlChatMemory) {
+        //         this.mySqlChatMemory = mySqlChatMemory;
+        //         ChatMemory chatMemory = this.mySqlChatMemory;
+        //         chatClient = builder.defaultSystem(systemResource, Charset.forName("UTF-8"))
+        //                         .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory),
+        //                                         new SensitiveWordAdvisor(),
+        //                                         new MyLoggerAdvisor())
+        //                         .build();
+        // }
 
-        public LoveApp(ChatClient.Builder builder, InMySqlChatMemory mySqlChatMemory) {
-                this.mySqlChatMemory = mySqlChatMemory;
-                ChatMemory chatMemory = this.mySqlChatMemory;
-                chatClient = builder.defaultSystem(SYSTEM_PROMPT)
-                                .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory),
-                                                new SensitiveWordAdvisor(),
-                                                new MyLoggerAdvisor())
-                                .build();
+        public LoveApp(ChatClient.Builder builder) throws IOException {
+                ChatMemory chatMemory = new InMemoryChatMemory();
+                chatClient = builder
+                        .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory),
+                                        new SensitiveWordAdvisor(),
+                                        new MyLoggerAdvisor())
+                        .build();
         }
 
         /**
@@ -168,5 +184,27 @@ public class LoveApp {
                                 .call()
                                 .entity(LoveReport.class);
                 return loveReport;
+        }
+
+        /**
+         * 基于 RAG 的聊天
+         * 
+         * @param message
+         * @param chatId
+         * @return
+         */
+        public String doChaWithRag(String message, String chatId) {
+                String content = chatClient.prompt()
+                                .user(message)
+                                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                                                .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                                // 开启日志记录顾问、QA顾问
+                                .advisors(new MyLoggerAdvisor(), new QuestionAnswerAdvisor(loveAppVectorStore))
+                                .call()
+                                .chatResponse()
+                                .getResult()
+                                .getOutput()
+                                .getText();
+                return content;
         }
 }
