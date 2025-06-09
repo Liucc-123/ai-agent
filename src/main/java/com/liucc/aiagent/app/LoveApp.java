@@ -4,17 +4,16 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Component;
 import com.liucc.aiagent.advisors.MyLoggerAdvisor;
 import com.liucc.aiagent.advisors.SensitiveWordAdvisor;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -55,6 +53,9 @@ public class LoveApp {
         @jakarta.annotation.Resource
         private VectorStore loveAppVectorStore;
 
+        @jakarta.annotation.Resource
+        private Advisor loveAppRagCloudAdvisor;
+
         /**
          * 构造函数注入ChatClient。默认使用的大模型是 DashScopeChatModel
          *
@@ -75,9 +76,7 @@ public class LoveApp {
         public LoveApp(ChatClient.Builder builder) throws IOException {
                 ChatMemory chatMemory = new InMemoryChatMemory();
                 chatClient = builder
-                        .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory),
-                                        new SensitiveWordAdvisor(),
-                                        new MyLoggerAdvisor())
+                        .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory))
                         .build();
         }
 
@@ -199,7 +198,31 @@ public class LoveApp {
                                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                                                 .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
                                 // 开启日志记录顾问、QA顾问
-                                .advisors(new MyLoggerAdvisor(), new QuestionAnswerAdvisor(loveAppVectorStore))
+                                .advisors(new MyLoggerAdvisor())
+                                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                                .call()
+                                .chatResponse()
+                                .getResult()
+                                .getOutput()
+                                .getText();
+                return content;
+        }
+
+        /**
+         * 基于云知识库的知识问答
+         * @param message
+         * @param chatId
+         * @return
+         */
+        public String doChaWithCloudRag(String message, String chatId) {
+                String content = chatClient.prompt()
+                                .user(message)
+                                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                                                .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                                // 开启日志记录顾问
+                                .advisors(new MyLoggerAdvisor())
+                                // 基于云知识库的增强检索
+                                .advisors(loveAppRagCloudAdvisor)
                                 .call()
                                 .chatResponse()
                                 .getResult()
