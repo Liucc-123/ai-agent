@@ -25,30 +25,15 @@ public class DataSourceConfig {
      */
     @Primary
     @Bean(name = "mysqlDataSource")
-    @ConfigurationProperties(prefix = "multiple-datasource.mysql")
+    @ConfigurationProperties(prefix = "spring.datasource.mysql")
     public DataSource mysqlDataSource() {
-        return DataSourceBuilder.create()
-                .driverClassName("com.mysql.cj.jdbc.Driver")
-                .url("jdbc:mysql://localhost:3306/ai-agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai")
-                .username("root")
-                .password("123456")
-                .build();
+        return DataSourceBuilder.create().build();
     }
 
-    /**
-     * postgresql作为向量数据库
-     * 
-     * @return
-     */
     @Bean(name = "postgresqlDataSource")
-    @ConfigurationProperties(prefix = "multiple-datasource.postgresql")
-    public DataSource postgresqlDataSource() {
-        return DataSourceBuilder.create()
-                .url("jdbc:postgresql://rm-cn-ce74b52i20001gwo.rwlb.rds.aliyuncs.com/tiga_ai_agent")
-                .username("ai_agent123")
-                .password("Liu19991212")
-                .driverClassName("org.postgresql.Driver")
-                .build();
+    @ConfigurationProperties(prefix = "spring.datasource.postgresql")
+    public DataSource postgresDataSource() {
+        return DataSourceBuilder.create().build();
     }
 
     @Primary
