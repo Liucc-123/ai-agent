@@ -54,6 +54,9 @@ public class LoveApp {
         private VectorStore loveAppVectorStore;
 
         @jakarta.annotation.Resource
+        private VectorStore pgVectorVectorStore;
+
+        @jakarta.annotation.Resource
         private Advisor loveAppRagCloudAdvisor;
 
         /**
@@ -199,7 +202,7 @@ public class LoveApp {
                                                 .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
                                 // 开启日志记录顾问、QA顾问
                                 .advisors(new MyLoggerAdvisor())
-                                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                                .advisors(new QuestionAnswerAdvisor(pgVectorVectorStore))
                                 .call()
                                 .chatResponse()
                                 .getResult()
