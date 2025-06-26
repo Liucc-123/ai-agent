@@ -6,6 +6,7 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 import java.io.IOException;
 import java.util.List;
 
+import com.liucc.aiagent.rag.QueryRewriter;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
@@ -13,6 +14,8 @@ import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.rag.Query;
+import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -58,6 +61,9 @@ public class LoveApp {
 
         @jakarta.annotation.Resource
         private Advisor loveAppRagCloudAdvisor;
+
+        @jakarta.annotation.Resource
+        private ChatClient.Builder chatClientBuilder;
 
         /**
          * 构造函数注入ChatClient。默认使用的大模型是 DashScopeChatModel
@@ -188,6 +194,8 @@ public class LoveApp {
                 return loveReport;
         }
 
+        @jakarta.annotation.Resource
+        private QueryRewriter queryRewriter;
         /**
          * 基于 RAG 的聊天
          * 
@@ -196,13 +204,16 @@ public class LoveApp {
          * @return
          */
         public String doChaWithRag(String message, String chatId) {
+                // 改写后的 prompt
+                String rewriteMessage = queryRewriter.doQueryWrite(message);
                 String content = chatClient.prompt()
-                                .user(message)
+                                .user(rewriteMessage)
                                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
                                                 .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
                                 // 开启日志记录顾问、QA顾问
                                 .advisors(new MyLoggerAdvisor())
-                                .advisors(new QuestionAnswerAdvisor(pgVectorVectorStore))
+//                                .advisors(new QuestionAnswerAdvisor(pgVectorVectorStore))
+                                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                                 .call()
                                 .chatResponse()
                                 .getResult()

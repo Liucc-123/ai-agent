@@ -1,7 +1,10 @@
 package com.liucc.aiagent.rag;
 
+import jakarta.annotation.Resource;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
 import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +32,6 @@ public class LoveAppRagCloudAdvisorConfig {
                         // 注意使用的是知识库名称，而不是知识库id
                         .withIndexName("恋爱知识问答")
                         .build());
-
         Advisor retrievalAugmentationAdvisor = RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(retriever)
                 .build();
