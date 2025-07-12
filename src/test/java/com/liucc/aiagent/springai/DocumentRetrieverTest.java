@@ -25,7 +25,7 @@ public class DocumentRetrieverTest {
 
     @Test
     public void queryRewrite(){
-        Query query = new Query("啥是程序员鱼皮啊啊啊啊？");
+        Query query = new Query("我正在学习机器学习。什么是大语言模型？");
 
         QueryTransformer queryTransformer = RewriteQueryTransformer.builder()
                 .chatClientBuilder(chatClientBuilder)

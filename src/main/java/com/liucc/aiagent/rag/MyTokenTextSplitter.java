@@ -14,7 +14,7 @@ class MyTokenTextSplitter {
     }
 
     public List<Document> splitCustomized(List<Document> documents) {
-        TokenTextSplitter splitter = new TokenTextSplitter(200, 100, 10, 5000, true);
+        TokenTextSplitter splitter = new TokenTextSplitter(100, 50, 10, 5000, true);
         return splitter.apply(documents);
     }
 }

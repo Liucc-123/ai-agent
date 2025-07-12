@@ -29,6 +29,7 @@ public class LoveAppDocumentLoader {
             Resource[] resources = resourcePatternResolver.getResources("classpath:document/*.md");
             for (Resource resource : resources) {
                 String filename = resource.getFilename();
+                // 为每个文档添加“恋爱状态”元信息
                 String status = filename.substring(filename.length() - 6, filename.length() - 4);
                 MarkdownDocumentReaderConfig config = MarkdownDocumentReaderConfig.builder()
                     .withHorizontalRuleCreateDocument(true)

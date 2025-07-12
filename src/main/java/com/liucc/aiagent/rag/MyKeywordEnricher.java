@@ -8,9 +8,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * 关键词元数据生成器
+ */
 @Component
 public class MyKeywordEnricher {
-
     @Resource
     private ChatModel dashscopeChatModel;
     List<Document> enrichDocuments(List<Document> documents){

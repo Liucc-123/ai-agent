@@ -32,13 +32,12 @@ public class LoveAppVectorStoreConfig {
         // 加载文档
         List<Document> markdowns = loveAppDocumentLoader.loadMarkdowns();
         // 生成关键词元数据
-        myKeywordEnricher.enrichDocuments(markdowns);
+        List<Document> enrichDocuments = myKeywordEnricher.enrichDocuments(markdowns);
         // chunk
-        List<Document> chunks = myTokenTextSplitter.splitCustomized(markdowns);
+//        List<Document> chunks = myTokenTextSplitter.splitCustomized(markdowns);
         SimpleVectorStore simpleVectorStore = SimpleVectorStore.builder(dashscopeEmbeddingModel).build();
-
         // 分段文档存储到向量数据库中
-        simpleVectorStore.add(chunks);
+        simpleVectorStore.add(enrichDocuments);
         return simpleVectorStore;
     }
          

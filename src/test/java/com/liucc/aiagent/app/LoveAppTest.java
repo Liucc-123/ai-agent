@@ -1,17 +1,26 @@
 package com.liucc.aiagent.app;
 
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.rag.Query;
+import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.List;
 import java.util.UUID;
 
 @SpringBootTest
+@Slf4j
 class LoveAppTest {
 
     @Resource
     private LoveApp loveApp;
+    @Resource
+    ChatModel dashScopeChatModel;
 
     @Test
     void chatTest() {
@@ -94,5 +103,21 @@ class LoveAppTest {
         String chatId = UUID.randomUUID().toString();
         loveApp.doChaWithCloudRag(message, chatId);
         loveApp.doChaWithCloudRag("我和我的女朋友是异地恋，我该怎么维持这段关系呢？", chatId);
+    }
+
+    /**
+     * 查询扩展器测试
+     */
+    @Test
+    void queryExpanderTest(){
+        ChatClient.Builder builder = ChatClient.builder(dashScopeChatModel);
+        // 查询扩展
+        MultiQueryExpander multiQueryExpander = MultiQueryExpander.builder()
+                .chatClientBuilder(builder)
+                .includeOriginal(false)
+                .numberOfQueries(3)
+                .build();
+        List<Query> expand = multiQueryExpander.expand(new Query("谁是水冠呢呢呢？"));
+        log.info("扩展后的查询: {}", expand);
     }
 }
