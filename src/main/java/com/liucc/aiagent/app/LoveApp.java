@@ -1,35 +1,28 @@
 package com.liucc.aiagent.app;
 
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
-
-import java.io.IOException;
-import java.util.List;
-
-import com.liucc.aiagent.rag.LoveAppContextualAugmenterFactory;
+import com.liucc.aiagent.advisors.MyLoggerAdvisor;
 import com.liucc.aiagent.rag.LoveAppRagCustomAdvisorFactory;
 import com.liucc.aiagent.rag.QueryRewriter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.rag.Query;
-import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
-import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
-import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
-
-import com.liucc.aiagent.advisors.MyLoggerAdvisor;
-import com.liucc.aiagent.advisors.SensitiveWordAdvisor;
-
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+
+import java.io.IOException;
+import java.util.List;
+
+import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
+import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 /**
  * 恋爱助手
@@ -248,6 +241,27 @@ public class LoveApp {
                 .getResult()
                 .getOutput()
                 .getText();
+        return content;
+    }
+
+    // =================================================
+    @jakarta.annotation.Resource
+    ToolCallback[] allTools;
+    public String doChatWithTools(String message, String chatId) {
+        // 使用工具
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                // 开启日志记录顾问
+                .advisors(new MyLoggerAdvisor())
+                // 使用工具
+                .tools(allTools)
+                .options(ToolCallingChatOptions.builder().toolNames("readFile", "searchWeb").internalToolExecutionEnabled(false).build())
+                .call()
+                .chatResponse();
+        String content = chatResponse.getResult().getOutput().getText();
+        log.info("doChatWithTools content: {}", content);
         return content;
     }
 }
